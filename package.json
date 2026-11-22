@@ -1,0 +1,17 @@
+{
+  "name": "desafio_teste_campo_minado",
+  "version": "1.0.0",
+  "description": "Casos de teste em JavaScript (Jest) para o Campo Minado 18 x 14 com 40 bombas",
+  "scripts": {
+    "test": "jest",
+    "coverage": "jest --coverage"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": ["src/**/*.js"]
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
