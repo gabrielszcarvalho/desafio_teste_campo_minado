@@ -2,7 +2,9 @@
 
 Campo minado em JavaScript com casos de teste em JavaScript (Jest).
 
-**Colaborador:** Gabriel Carvalho
+## Colaborador
+
+- Gabriel Carvalho | RA: 24027655-2
 
 ## Especificação
 
@@ -15,7 +17,53 @@ Campo minado em JavaScript com casos de teste em JavaScript (Jest).
 - Ganha quem abrir todas as células sem bomba, mesmo sem usar bandeiras.
 - Depois do fim, nenhuma jogada é aceita.
 
-O jogo fica em `src/campoMinado.js` (classe `CampoMinado`) e os testes em `__tests__/campoMinado.spec.js`.
+## Contrato da implementação
+
+O jogo fica em `src/campoMinado.js` (CommonJS) e é importado nos testes com `require('../src/campoMinado')`:
+
+```js
+module.exports = { CampoMinado, PADRAO };
+```
+
+- `PADRAO`: `{ linhas: 14, colunas: 18, bombas: 40 }`.
+- As posições são sempre `(linha, coluna)`, começando em 0.
+
+### `new CampoMinado(opcoes?)`
+
+Opções (todas opcionais):
+
+- `linhas`, `colunas`, `bombas`: tamanho do tabuleiro e quantidade de bombas (padrão: 14, 18 e 40);
+- `aleatorio`: função que devolve um número entre 0 e 1, usada no sorteio das bombas (padrão: `Math.random`);
+- `posicoesBombas`: lista de `[linha, coluna]` com as bombas fixas. Nesse caso a quantidade de bombas é o tamanho da lista e o jogo já começa `em andamento`.
+
+Erros do construtor:
+
+- linhas ou colunas que não são inteiros positivos: mensagem com `"dimensões"`;
+- bombas fora do intervalo de 1 até (células − 9): mensagem com `"bombas"`;
+- bomba fixa fora do tabuleiro ou repetida: mensagem com `"fora do tabuleiro"` ou `"repetida"`.
+
+### Propriedades
+
+- `linhas`, `colunas`, `bombas`;
+- `status`: `'aguardando'` (antes da primeira jogada), `'em andamento'`, `'ganhou'` ou `'perdeu'`;
+- `totalAbertas`: quantas células já foram abertas;
+- `bandeirasRestantes`: bombas menos bandeiras colocadas.
+
+### Métodos
+
+- `abrir(linha, coluna)`: abre a célula (e a região em volta, se for vazia). Devolve quantas células abriu. Na primeira jogada sorteia as bombas.
+- `alternarBandeira(linha, coluna)`: põe ou tira a bandeira. Devolve `true` se a célula ficou com bandeira.
+- `abrirAoRedor(linha, coluna)`: atalho do número; devolve quantas células abriu (0 se as bandeiras não batem com o número).
+- `ehBomba`, `estaAberta`, `temBandeira` (`boolean`) e `bombasVizinhas` (0 a 8), todos recebendo `(linha, coluna)`.
+- `revelarTudo()`: deixa todas as bombas visíveis.
+- `mapa()`: lista de textos, uma por linha: `#` fechada, `F` bandeira, `*` bomba, espaço para célula sem bombas vizinhas e `1` a `8` para a contagem.
+
+Erros dos métodos:
+
+- posição fora do tabuleiro: `RangeError`;
+- qualquer jogada depois do fim: mensagem com `"encerrado"`;
+- bandeira em célula aberta: mensagem com `"aberta"`;
+- bandeira além da quantidade de bombas: mensagem com `"bandeiras"`.
 
 ## Casos de teste
 
@@ -34,6 +82,8 @@ O que é testado:
 - bandeiras: marcar, desmarcar, limite de 40 e célula com bandeira que não abre;
 - atalho `abrirAoRedor` com bandeiras certas, faltando e no lugar errado;
 - vitória, derrota e uma partida completa no tabuleiro 18 x 14.
+
+São 35 casos de teste. Uma implementação correta deve terminar com `Tests: 35 passed, 35 total`.
 
 ## Como rodar
 
