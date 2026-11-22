@@ -9,15 +9,18 @@ function geradorComSemente(semente) {
   };
 }
 
-// Tabuleiro pequeno e previsível, usado nos testes de regras:
+// Tabuleiro pequeno e previsível, usado nos testes de regras
+// (* = bomba; espaço = célula sem bombas vizinhas):
 //
 //    0 1 2 3 4
-// 0  * 1 0 0 0
-// 1  1 1 0 0 0
-// 2  0 0 0 1 1
-// 3  0 0 0 1 *
+// 0  * 2 * 1 _
+// 1  1 2 1 1 _
+// 2  _ _ _ 1 1
+// 3  _ _ _ 1 *
+//
+// Há duas regiões vazias separadas: {(0,4), (1,4)} e o bloco do canto inferior esquerdo.
 function tabuleiroPequeno() {
-  return new CampoMinado({ linhas: 4, colunas: 5, posicoesBombas: [[0, 0], [3, 4]] });
+  return new CampoMinado({ linhas: 4, colunas: 5, posicoesBombas: [[0, 0], [0, 2], [3, 4]] });
 }
 
 function contarBombas(jogo) {
@@ -117,8 +120,10 @@ describe('Configuração inválida', () => {
 describe('Contagem de bombas vizinhas', () => {
   test('conta corretamente no canto, na borda e no meio', () => {
     const jogo = tabuleiroPequeno();
-    expect(jogo.bombasVizinhas(0, 1)).toBe(1);
-    expect(jogo.bombasVizinhas(1, 1)).toBe(1);
+    expect(jogo.bombasVizinhas(0, 1)).toBe(2);
+    expect(jogo.bombasVizinhas(1, 0)).toBe(1);
+    expect(jogo.bombasVizinhas(1, 1)).toBe(2);
+    expect(jogo.bombasVizinhas(0, 4)).toBe(0);
     expect(jogo.bombasVizinhas(2, 2)).toBe(0);
     expect(jogo.bombasVizinhas(2, 3)).toBe(1);
     expect(jogo.bombasVizinhas(3, 3)).toBe(1);
@@ -136,27 +141,28 @@ describe('Abrir células', () => {
     const jogo = tabuleiroPequeno();
     expect(jogo.abrir(0, 1)).toBe(1);
     expect(jogo.estaAberta(0, 1)).toBe(true);
-    expect(jogo.estaAberta(0, 2)).toBe(false);
+    expect(jogo.estaAberta(1, 1)).toBe(false);
   });
 
   test('abrir uma célula vazia abre a região em cascata até os números', () => {
     const jogo = tabuleiroPequeno();
-    const abertas = jogo.abrir(0, 4);
-    expect(abertas).toBe(16);
+    const abertas = jogo.abrir(3, 0);
+    expect(abertas).toBe(12);
     expect(jogo.mapa()).toEqual([
-      '#1   ',
-      '11   ',
-      '   11',
+      '#####',
+      '1211#',
+      '   1#',
       '   1#',
     ]);
   });
 
   test('a cascata não abre células com bandeira', () => {
     const jogo = tabuleiroPequeno();
-    jogo.alternarBandeira(1, 3);
-    jogo.abrir(0, 4);
-    expect(jogo.estaAberta(1, 3)).toBe(false);
-    expect(jogo.temBandeira(1, 3)).toBe(true);
+    jogo.alternarBandeira(1, 1);
+    jogo.abrir(3, 0);
+    expect(jogo.estaAberta(1, 1)).toBe(false);
+    expect(jogo.temBandeira(1, 1)).toBe(true);
+    expect(jogo.estaAberta(1, 2)).toBe(true);
   });
 
   test('abrir de novo uma célula já aberta não muda nada', () => {
@@ -172,7 +178,7 @@ describe('Abrir células', () => {
     jogo.abrir(3, 4);
     expect(jogo.status).toBe('perdeu');
     expect(jogo.mapa()).toEqual([
-      '*1###',
+      '*2*##',
       '#####',
       '#####',
       '####*',
@@ -191,9 +197,9 @@ describe('Bandeiras', () => {
   test('marcar e desmarcar atualiza o contador', () => {
     const jogo = tabuleiroPequeno();
     expect(jogo.alternarBandeira(0, 0)).toBe(true);
-    expect(jogo.bandeirasRestantes).toBe(1);
-    expect(jogo.alternarBandeira(0, 0)).toBe(false);
     expect(jogo.bandeirasRestantes).toBe(2);
+    expect(jogo.alternarBandeira(0, 0)).toBe(false);
+    expect(jogo.bandeirasRestantes).toBe(3);
   });
 
   test('célula com bandeira não abre', () => {
@@ -213,7 +219,8 @@ describe('Bandeiras', () => {
     const jogo = tabuleiroPequeno();
     jogo.alternarBandeira(2, 0);
     jogo.alternarBandeira(2, 1);
-    expect(() => jogo.alternarBandeira(2, 2)).toThrow('bandeiras');
+    jogo.alternarBandeira(2, 2);
+    expect(() => jogo.alternarBandeira(3, 0)).toThrow('bandeiras');
   });
 
   test('pôr bandeira antes da primeira jogada não sorteia bombas', () => {
@@ -233,27 +240,28 @@ describe('Bandeiras', () => {
 describe('Abrir ao redor de um número (atalho)', () => {
   test('com as bandeiras certas, abre as vizinhas restantes', () => {
     const jogo = tabuleiroPequeno();
-    jogo.abrir(1, 1);
+    jogo.abrir(1, 0);
     jogo.alternarBandeira(0, 0);
-    const abertas = jogo.abrirAoRedor(1, 1);
-    expect(abertas).toBeGreaterThan(0);
+    const abertas = jogo.abrirAoRedor(1, 0);
+    expect(abertas).toBe(12);
     expect(jogo.estaAberta(0, 1)).toBe(true);
+    expect(jogo.estaAberta(1, 1)).toBe(true);
     expect(jogo.estaAberta(2, 2)).toBe(true);
     expect(jogo.status).toBe('em andamento');
   });
 
   test('sem bandeiras suficientes, não faz nada', () => {
     const jogo = tabuleiroPequeno();
-    jogo.abrir(1, 1);
-    expect(jogo.abrirAoRedor(1, 1)).toBe(0);
+    jogo.abrir(1, 0);
+    expect(jogo.abrirAoRedor(1, 0)).toBe(0);
     expect(jogo.totalAbertas).toBe(1);
   });
 
   test('com bandeira no lugar errado, explode', () => {
     const jogo = tabuleiroPequeno();
-    jogo.abrir(1, 1);
-    jogo.alternarBandeira(0, 1);
-    jogo.abrirAoRedor(1, 1);
+    jogo.abrir(1, 0);
+    jogo.alternarBandeira(1, 1);
+    jogo.abrirAoRedor(1, 0);
     expect(jogo.status).toBe('perdeu');
   });
 
@@ -266,10 +274,11 @@ describe('Abrir ao redor de um número (atalho)', () => {
 describe('Fim de jogo', () => {
   test('ganha ao abrir todas as células sem bomba, mesmo sem bandeiras', () => {
     const jogo = tabuleiroPequeno();
+    jogo.abrir(3, 0);
     jogo.abrir(0, 4);
     expect(jogo.status).toBe('em andamento');
+    expect(jogo.totalAbertas).toBe(16);
     jogo.abrir(0, 1);
-    jogo.abrir(1, 0);
     expect(jogo.status).toBe('ganhou');
   });
 
@@ -278,7 +287,7 @@ describe('Fim de jogo', () => {
     jogo.abrir(0, 0);
     expect(() => jogo.abrir(2, 2)).toThrow('encerrado');
     expect(() => jogo.alternarBandeira(2, 2)).toThrow('encerrado');
-    expect(() => jogo.abrirAoRedor(1, 1)).toThrow('encerrado');
+    expect(() => jogo.abrirAoRedor(1, 0)).toThrow('encerrado');
   });
 
   test('partida completa 18 x 14: abrindo só células seguras, o jogador vence', () => {
@@ -286,7 +295,7 @@ describe('Fim de jogo', () => {
     jogo.abrir(7, 9);
     for (let l = 0; l < 14; l++) {
       for (let c = 0; c < 18; c++) {
-        if (!jogo.ehBomba(l, c)) jogo.abrir(l, c);
+        if (!jogo.ehBomba(l, c) && !jogo.estaAberta(l, c)) jogo.abrir(l, c);
       }
     }
     expect(jogo.status).toBe('ganhou');
